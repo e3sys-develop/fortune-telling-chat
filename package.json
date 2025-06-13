@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "rebuild": "rm -R docs && vite build",
+    "git": "git add . && git commit && git push origin main",
     "lint": "eslint .",
     "preview": "vite preview"
   },
