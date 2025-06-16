@@ -13,7 +13,7 @@ interface GeminiResponse {
 }
 
 export class GeminiAPI {
-  private apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+  private apiKey = 'YOUR_FIXED_API_KEY_HERE'; // 管理者が設定する固定APIキー
   private baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
   async generateResponse(prompt: string, userMessage: string): Promise<string> {
