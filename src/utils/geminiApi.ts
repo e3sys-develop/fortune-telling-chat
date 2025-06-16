@@ -38,6 +38,8 @@ export class GeminiAPI {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Detail:', errorText);
         throw new Error(`API Error: ${response.status} ${response.statusText}`);
       }
 
