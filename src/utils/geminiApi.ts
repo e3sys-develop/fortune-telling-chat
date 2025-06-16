@@ -14,7 +14,7 @@ interface GeminiResponse {
 
 export class GeminiAPI {
   private apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-  private baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+  private baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
   async generateResponse(prompt: string, userMessage: string): Promise<string> {
     try {
