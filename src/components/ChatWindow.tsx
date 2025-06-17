@@ -3,6 +3,7 @@ import { Send, ArrowLeft, RefreshCw } from 'lucide-react';
 import { Character, Message } from '../types';
 import { MessageBubble } from './MessageBubble';
 import { GeminiAPI } from '../utils/geminiApi';
+import { ConversationManager } from '../utils/conversationManager';
 
 interface ChatWindowProps {
   character: Character;
@@ -13,6 +14,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ character, onBack }) => 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [conversationManager] = useState(() => new ConversationManager(character));
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const geminiAPI = new GeminiAPI();
@@ -26,16 +28,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ character, onBack }) => 
   }, [messages]);
 
   useEffect(() => {
-    // Initial greeting message
+    // Initial greeting message with conversation flow
     const greetingMessage: Message = {
       id: Date.now().toString(),
-      text: `こんにちは、私は${character.name}です。${character.description}\n\nどのようなことでお悩みでしょうか？お気軽にお聞かせください。`,
+      text: conversationManager.getInitialMessage(),
       isUser: false,
       timestamp: new Date(),
       characterId: character.id
     };
     setMessages([greetingMessage]);
-  }, [character]);
+  }, [character, conversationManager]);
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || isLoading) return;
@@ -48,21 +50,37 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ character, onBack }) => 
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputText;
     setInputText('');
     setIsLoading(true);
 
     try {
-      const response = await geminiAPI.generateResponse(character.prompt, inputText);
+      const result = conversationManager.processUserInput(currentInput);
       
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: response,
-        isUser: false,
-        timestamp: new Date(),
-        characterId: character.id
-      };
+      if (!result.needsAI && result.response) {
+        const directMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: result.response,
+          isUser: false,
+          timestamp: new Date(),
+          characterId: character.id
+        };
+        setMessages(prev => [...prev, directMessage]);
+      } else {
+        const aiPrompt = conversationManager.generateAIPrompt(currentInput);
+        const response = await geminiAPI.generateResponse(aiPrompt, currentInput);
+        const processedResponse = conversationManager.processAIResponse(response);
+        
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: processedResponse,
+          isUser: false,
+          timestamp: new Date(),
+          characterId: character.id
+        };
 
-      setMessages(prev => [...prev, aiMessage]);
+        setMessages(prev => [...prev, aiMessage]);
+      }
     } catch (error) {
       console.error('Failed to get AI response:', error);
       const errorMessage: Message = {

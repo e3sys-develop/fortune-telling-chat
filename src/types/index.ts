@@ -29,3 +29,25 @@ export interface ChatState {
   selectedCharacter: Character | null;
   apiKey: string;
 }
+
+export type FortuneType = 'love' | 'work' | 'money' | 'health' | 'compatibility' | 'general';
+
+export type ConversationStep = 
+  | 'fortune_type_selection'
+  | 'basic_info_collection'
+  | 'specific_info_collection'
+  | 'fortune_reading'
+  | 'additional_questions';
+
+export interface ConversationState {
+  step: ConversationStep;
+  fortuneType?: FortuneType;
+  collectedInfo: Record<string, string>;
+  isComplete: boolean;
+}
+
+export interface FortuneSession {
+  conversationState: ConversationState;
+  lastResponse: string;
+  responseCount: number;
+}
