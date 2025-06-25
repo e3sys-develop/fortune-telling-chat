@@ -1,5 +1,5 @@
 import { Character } from '../types';
-import { FortuneType, ConversationStep, ConversationState, FortuneSession } from '../types';
+import { FortuneType, FortuneSession } from '../types';
 
 export class ConversationManager {
   private session: FortuneSession;
@@ -36,7 +36,7 @@ export class ConversationManager {
   }
 
   private generateStepQuestion(): string {
-    const { step, fortuneType } = this.session.conversationState;
+    const { step } = this.session.conversationState;
     
     switch (step) {
       case 'fortune_type_selection':
@@ -160,7 +160,7 @@ export class ConversationManager {
     return { needsAI: true };
   }
 
-  public generateAIPrompt(userInput: string): string {
+  public generateAIPrompt(): string {
     const { step, fortuneType, collectedInfo } = this.session.conversationState;
     const basePrompt = this.character.prompt;
     

@@ -67,7 +67,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ character, onBack }) => 
         };
         setMessages(prev => [...prev, directMessage]);
       } else {
-        const aiPrompt = conversationManager.generateAIPrompt(currentInput);
+        const aiPrompt = conversationManager.generateAIPrompt();
         const response = await geminiAPI.generateResponse(aiPrompt, currentInput);
         const processedResponse = conversationManager.processAIResponse(response);
         
@@ -83,9 +83,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ character, onBack }) => 
       }
     } catch (error) {
       console.error('Failed to get AI response:', error);
+      let errorText = '申し訳ございません。一時的にサービスに接続できません。しばらく時間をおいてから再度お試しください。';
+      
+      if (error instanceof Error && error.message.includes('API key')) {
+        errorText = 'AI機能を利用するにはAPIキーの設定が必要です。管理者にお問い合わせください。';
+      }
+      
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: '申し訳ございません。一時的にサービスに接続できません。しばらく時間をおいてから再度お試しください。',
+        text: errorText,
         isUser: false,
         timestamp: new Date(),
         characterId: character.id

@@ -17,6 +17,10 @@ export class GeminiAPI {
   private baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
   async generateResponse(prompt: string, userMessage: string): Promise<string> {
+    if (!this.apiKey) {
+      throw new Error('Gemini API key is not configured. Please set VITE_GEMINI_API_KEY environment variable.');
+    }
+    
     try {
       const request: GeminiRequest = {
         contents: [
