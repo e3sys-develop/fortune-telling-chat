@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Character } from './types';
 import { CharacterSelector } from './components/CharacterSelector';
 import { ChatWindow } from './components/ChatWindow';
+import { LandingPage } from './components/LandingPage';
 
-type AppState = 'character-select' | 'chat';
+type AppState = 'landing' | 'character-select' | 'chat';
 
 function App() {
-  const [appState, setAppState] = useState<AppState>('character-select');
+  const [appState, setAppState] = useState<AppState>('landing');
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
+
+  const handleStartFortune = () => {
+    setAppState('character-select');
+  };
 
   const handleCharacterSelect = (character: Character) => {
     setSelectedCharacter(character);
@@ -19,10 +24,22 @@ function App() {
     setSelectedCharacter(null);
   };
 
+  const handleBackToLanding = () => {
+    setAppState('landing');
+    setSelectedCharacter(null);
+  };
+
   return (
     <>
+      {appState === 'landing' && (
+        <LandingPage onStartFortune={handleStartFortune} />
+      )}
+      
       {appState === 'character-select' && (
-        <CharacterSelector onSelectCharacter={handleCharacterSelect} />
+        <CharacterSelector 
+          onSelectCharacter={handleCharacterSelect}
+          onBackToLanding={handleBackToLanding}
+        />
       )}
       
       {appState === 'chat' && selectedCharacter && (

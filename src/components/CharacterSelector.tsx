@@ -4,13 +4,22 @@ import { characters } from '../data/characters';
 
 interface CharacterSelectorProps {
   onSelectCharacter: (character: Character) => void;
+  onBackToLanding?: () => void;
 }
 
-export const CharacterSelector: React.FC<CharacterSelectorProps> = ({ onSelectCharacter }) => {
+export const CharacterSelector: React.FC<CharacterSelectorProps> = ({ onSelectCharacter, onBackToLanding }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4">
-      <div className="max-w-6xl w-full">
+      <div className="max-w-6xl w-full relative">
         <div className="text-center mb-12">
+          {onBackToLanding && (
+            <button
+              onClick={onBackToLanding}
+              className="absolute top-4 left-4 text-purple-200 hover:text-white transition-colors duration-300"
+            >
+              ← トップページに戻る
+            </button>
+          )}
           <h1 className="text-4xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-purple-200 mb-4">
             Fortune Fortune
           </h1>
