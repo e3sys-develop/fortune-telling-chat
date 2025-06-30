@@ -67,7 +67,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ character, onBack }) => 
         };
         setMessages(prev => [...prev, directMessage]);
       } else {
-        const aiPrompt = conversationManager.generateAIPrompt(currentInput);
+        const aiPrompt = conversationManager.generateAIPrompt();
         const response = await geminiAPI.generateResponse(aiPrompt, currentInput);
         const processedResponse = conversationManager.processAIResponse(response);
         
