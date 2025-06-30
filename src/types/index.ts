@@ -44,6 +44,9 @@ export interface ConversationState {
   fortuneType?: FortuneType;
   collectedInfo: Record<string, string>;
   isComplete: boolean;
+  birthdateCollected: boolean;
+  relationshipStatusCollected: boolean;
+  hasIntroduced: boolean;
 }
 
 export interface FortuneSession {

@@ -1,5 +1,5 @@
 import { Character } from '../types';
-import { FortuneType, ConversationStep, ConversationState, FortuneSession } from '../types';
+import { FortuneType, FortuneSession } from '../types';
 
 export class ConversationManager {
   private session: FortuneSession;
@@ -11,11 +11,27 @@ export class ConversationManager {
       conversationState: {
         step: 'fortune_type_selection',
         collectedInfo: {},
-        isComplete: false
+        isComplete: false,
+        birthdateCollected: false,
+        relationshipStatusCollected: false,
+        hasIntroduced: false
       },
       lastResponse: '',
       responseCount: 0
     };
+  }
+
+  private debugLog(phase: string, action: string, data?: unknown): void {
+    if (import.meta.env.DEV) {
+      console.log(`[ConversationManager] ${phase} - ${action}`, {
+        step: this.session.conversationState.step,
+        fortuneType: this.session.conversationState.fortuneType,
+        collectedInfo: this.session.conversationState.collectedInfo,
+        responseCount: this.session.responseCount,
+        timestamp: new Date().toISOString(),
+        additionalData: data
+      });
+    }
   }
 
   private limitResponse(text: string): string {
@@ -36,14 +52,14 @@ export class ConversationManager {
   }
 
   private generateStepQuestion(): string {
-    const { step, fortuneType } = this.session.conversationState;
+    const { step } = this.session.conversationState;
     
     switch (step) {
       case 'fortune_type_selection':
         return 'どのような占いをご希望でしょうか？\n1. 恋愛運\n2. 仕事運\n3. 金運\n4. 健康運\n5. 相性\n6. 総合運\n\n番号でお選びください。';
       
       case 'basic_info_collection':
-        if (!this.session.conversationState.collectedInfo.birthdate) {
+        if (!this.session.conversationState.birthdateCollected) {
           return 'ありがとうございます。まず、あなたの生年月日を教えてください。（例：1990年5月15日）';
         }
         return this.getSpecificInfoQuestion();
@@ -64,7 +80,7 @@ export class ConversationManager {
     
     switch (fortuneType) {
       case 'love':
-        if (!collectedInfo.relationship_status) {
+        if (!this.session.conversationState.relationshipStatusCollected) {
           return '恋愛についてお聞きします。現在、特定の方との関係でお悩みでしょうか？';
         }
         break;
@@ -126,9 +142,13 @@ export class ConversationManager {
   }
 
   private handleBasicInfoCollection(input: string): { needsAI: boolean; response?: string } {
-    if (!this.session.conversationState.collectedInfo.birthdate) {
+    this.debugLog('BasicInfo', 'Processing input', { input });
+    
+    if (!this.session.conversationState.birthdateCollected) {
       this.session.conversationState.collectedInfo.birthdate = input;
+      this.session.conversationState.birthdateCollected = true;
       this.session.conversationState.step = 'specific_info_collection';
+      this.debugLog('BasicInfo', 'Birthdate collected, moving to specific info');
       return { needsAI: false, response: this.generateStepQuestion() };
     }
     
@@ -137,11 +157,23 @@ export class ConversationManager {
 
   private handleSpecificInfoCollection(input: string): { needsAI: boolean; response?: string } {
     const { fortuneType } = this.session.conversationState;
+    this.debugLog('SpecificInfo', 'Processing input', { input, fortuneType });
     
     switch (fortuneType) {
       case 'love':
-        if (!this.session.conversationState.collectedInfo.relationship_status) {
-          this.session.conversationState.collectedInfo.relationship_status = input;
+        if (!this.session.conversationState.relationshipStatusCollected) {
+          this.session.conversationState.relationshipStatusCollected = true;
+          
+          if (this.isNegativeResponse(input)) {
+            this.session.conversationState.collectedInfo.relationship_status = '特定のお相手なし';
+            this.debugLog('SpecificInfo', 'Negative response detected, offering alternative');
+            return { 
+              needsAI: false, 
+              response: '特定のお相手はいらっしゃらないのですね。では未来の出会い運を見てみましょうか？それとも現在の恋愛運全般についてお聞きしたいですか？' 
+            };
+          } else {
+            this.session.conversationState.collectedInfo.relationship_status = input;
+          }
         }
         break;
       case 'work':
@@ -157,10 +189,23 @@ export class ConversationManager {
     }
 
     this.session.conversationState.step = 'fortune_reading';
+    this.debugLog('SpecificInfo', 'Moving to fortune reading phase');
     return { needsAI: true };
   }
 
-  public generateAIPrompt(userInput: string): string {
+  private isNegativeResponse(input: string): boolean {
+    const negativePatterns = [
+      'ない', 'いない', 'ありません', 'いません', 
+      'わからない', 'わかりません', '不明', '特にない',
+      'とくにない', 'なし', '無し'
+    ];
+    
+    return negativePatterns.some(pattern => 
+      input.toLowerCase().includes(pattern)
+    );
+  }
+
+  public generateAIPrompt(): string {
     const { step, fortuneType, collectedInfo } = this.session.conversationState;
     const basePrompt = this.character.prompt;
     
@@ -204,17 +249,27 @@ export class ConversationManager {
   }
 
   public getInitialMessage(): string {
-    return this.limitResponse(
-      `こんにちは、私は${this.character.name}です。${this.character.description}\n\n${this.generateStepQuestion()}`
-    );
+    this.debugLog('Initial', 'Generating greeting message');
+    
+    if (!this.session.conversationState.hasIntroduced) {
+      this.session.conversationState.hasIntroduced = true;
+      return this.limitResponse(
+        `こんにちは、私は${this.character.name}です。${this.character.description}\n\n${this.generateStepQuestion()}`
+      );
+    }
+    
+    return this.limitResponse(this.generateStepQuestion());
   }
 
   public processAIResponse(response: string): string {
+    this.debugLog('AIResponse', 'Processing AI response', { responseLength: response.length });
+    
     this.session.lastResponse = response;
     this.session.responseCount++;
     
     if (this.session.conversationState.step === 'fortune_reading') {
       this.session.conversationState.step = 'additional_questions';
+      this.debugLog('AIResponse', 'Moved to additional questions phase');
     }
     
     return this.limitResponse(response);
